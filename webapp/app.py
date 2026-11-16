@@ -19,7 +19,12 @@ from backend.routers.predict import (
 from utils.data_loader import load_wbcd, load_metabric, models_ready
 from utils.theme import inject_theme
 
-st.set_page_config(page_title="BC DecisionPoint", page_icon="🩺", layout="wide")
+st.set_page_config(
+    page_title="BC DecisionPoint",
+    page_icon="🩺",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 inject_theme()
 
 

@@ -13,7 +13,16 @@ html, body, [class*="css"] {
     padding: 2rem 2.5rem 4rem 2.5rem !important;
     max-width: 1280px;
 }
-#MainMenu, footer, [data-testid="stToolbar"] { visibility: hidden; }
+#MainMenu, footer { visibility: hidden; }
+[data-testid="stToolbarActions"],
+[data-testid="stMainMenu"],
+[data-testid="stAppDeployButton"] { display: none !important; }
+[data-testid="stExpandSidebarButton"],
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="collapsedControl"] {
+    display: flex !important;
+    visibility: visible !important;
+}
 [data-testid="stHeader"] { background: transparent !important; }
 
 /* ── Sidebar ──────────────────────────────────────────────────────────────── */
