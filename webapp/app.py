@@ -121,7 +121,7 @@ NAV_GROUPS = [
     ("Review", ["Model Metrics"]),
 ]
 PAGE_COPY = {
-    "Data Overview": "Wisconsin Diagnostic and METABRIC, the cohorts behind every prediction.",
+    "Data Overview": "BreastCare estimates diagnosis, risk, and survival from clinical and genomic measurements.",
     "Diagnosis": "Benign or malignant, from 30 cell-nucleus measurements.",
     "Risk Stratification": "Low, medium, or high risk from clinical and molecular features.",
     "Survival Analysis": "Overall survival and relapse-free survival at 12, 24, and 36 months.",
