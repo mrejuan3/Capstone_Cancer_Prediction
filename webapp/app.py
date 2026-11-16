@@ -1,4 +1,3 @@
-import io
 import datetime
 
 import streamlit as st
@@ -30,6 +29,91 @@ inject_theme()
 
 def _run(endpoint, features: dict) -> dict:
     return endpoint(FeaturesRequest(features=features))
+
+
+def _csv_bytes(df: pd.DataFrame) -> bytes:
+    export = df.drop(columns=[c for c in df.columns if str(c).startswith("_")], errors="ignore")
+    return export.to_csv(index=False).encode("utf-8")
+
+
+def _diagnosis_report(ts: str, inputs: dict, result: dict) -> str:
+    lines = [
+        "BreastCare — Patient Report",
+        "=" * 50,
+        f"Timestamp : {ts}",
+        "Model     : Diagnosis (Calibrated Random Forest)",
+        "",
+        "Patient Inputs",
+        "-" * 30,
+        *[f"  {feat}: {val}" for feat, val in inputs.items()],
+        "",
+        "Prediction Result",
+        "-" * 30,
+        f"  Label              : {result['label']}",
+        f"  P(Malignant)       : {result['probability_malignant']:.4f}",
+        f"  P(Benign)          : {result['probability_benign']:.4f}",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def _risk_report(ts: str, inputs: dict, result: dict) -> str:
+    lines = [
+        "BreastCare — Patient Report",
+        "=" * 50,
+        f"Timestamp : {ts}",
+        "Model     : Risk Stratification (XGBoost)",
+        "",
+        "Patient Inputs",
+        "-" * 30,
+        *[f"  {feat}: {val}" for feat, val in inputs.items()],
+        "",
+        "Prediction Result",
+        "-" * 30,
+        f"  Risk Level : {result['label']}",
+        *[f"  P({risk}) : {prob:.4f}" for risk, prob in result["probabilities"].items()],
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def _survival_report(ts: str, inputs: dict, result: dict) -> str:
+    lines = [
+        "BreastCare — Patient Report",
+        "=" * 50,
+        f"Timestamp : {ts}",
+        "Model     : Survival Analysis (Cox Proportional Hazards)",
+        "",
+        "Patient Inputs",
+        "-" * 30,
+        *[f"  {feat}: {val}" for feat, val in inputs.items()],
+        "",
+        "Prediction Result — Overall Survival",
+        "-" * 30,
+        *[f"  {months}-month OS: {prob:.4f}" for months, prob in result["overall_survival"].items()],
+        "",
+        "Prediction Result — Relapse-Free Survival",
+        "-" * 30,
+        *[f"  {months}-month RFS: {prob:.4f}" for months, prob in result["relapse_free_survival"].items()],
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def _metrics_table(all_m: dict) -> pd.DataFrame:
+    rows = []
+    ma = all_m.get("model_a") or {}
+    for metric in ("accuracy", "precision", "recall", "f1", "roc_auc", "test_size"):
+        if metric in ma:
+            rows.append({"model": "Diagnosis", "metric": metric, "value": ma[metric]})
+    mb = all_m.get("model_b") or {}
+    for metric in ("accuracy", "f1_weighted", "test_size"):
+        if metric in mb:
+            rows.append({"model": "Risk", "metric": metric, "value": mb[metric]})
+    for tier, value in (mb.get("f1_per_class") or {}).items():
+        rows.append({"model": "Risk", "metric": f"f1_{tier}", "value": value})
+    mc = all_m.get("model_c") or {}
+    for metric in ("c_index_os", "c_index_rfs", "train_size"):
+        if metric in mc:
+            rows.append({"model": "Survival", "metric": metric, "value": mc[metric]})
+    return pd.DataFrame(rows)
 
 NAV_GROUPS = [
     ("Explore", ["Data Overview"]),
@@ -276,6 +360,13 @@ if page == "Data Overview":
             n_benign = n_malignant = 0
         completeness_w = round((1 - df_w.isnull().mean().mean()) * 100, 1)
         n_miss_w = int((df_w.isnull().sum() > 0).sum())
+        st.download_button(
+            "Download WBCD (.csv)",
+            data=_csv_bytes(df_w),
+            file_name="breastcare_wbcd.csv",
+            mime="text/csv",
+            key="dl_wbcd",
+        )
 
         hw = st.columns(5)
         hw[0].metric("Total Patients",    f"{len(df_w):,}")
@@ -352,6 +443,13 @@ if page == "Data Overview":
             median_surv = round(float(df_m["Overall Survival (Months)"].median()), 1)
         completeness_m = round((1 - df_m.isnull().mean().mean()) * 100, 1)
         n_miss_m = int((df_m.isnull().sum() > 0).sum())
+        st.download_button(
+            "Download METABRIC (.csv)",
+            data=_csv_bytes(df_m),
+            file_name="breastcare_metabric.csv",
+            mime="text/csv",
+            key="dl_metabric",
+        )
 
         hm = st.columns(5)
         hm[0].metric("Total Patients",    f"{len(df_m):,}")
@@ -430,6 +528,13 @@ if page == "Data Overview":
             df_sg = df_m[mask]
 
             st.caption(f"Filtered cohort: {len(df_sg):,} patients")
+            st.download_button(
+                "Download filtered cohort (.csv)",
+                data=_csv_bytes(df_sg),
+                file_name="breastcare_metabric_filtered.csv",
+                mime="text/csv",
+                key="dl_metabric_filtered",
+            )
             ss1, ss2, ss3 = st.columns(3, gap="medium")
             if "Overall Survival Status" in df_sg.columns:
                 ss1.markdown("**Survival Status**")
@@ -510,33 +615,29 @@ elif page == "Diagnosis":
                     "inputs_summary": f"radius_mean={inputs_a.get('radius_mean', ''):.4f}, texture_mean={inputs_a.get('texture_mean', ''):.4f}",
                     "result": f"{label_a} (P_mal={r['probability_malignant']:.1%})",
                 })
+                st.session_state["diagnosis_report"] = _diagnosis_report(ts_str, inputs_a, r)
 
-                # Patient report download
-                buf = io.StringIO()
-                buf.write("BreastCare — Patient Report\n")
-                buf.write("=" * 50 + "\n")
-                buf.write(f"Timestamp : {ts_str}\n")
-                buf.write(f"Model     : Diagnosis (Calibrated Random Forest)\n\n")
-                buf.write("Patient Inputs\n")
-                buf.write("-" * 30 + "\n")
-                for feat, val in inputs_a.items():
-                    buf.write(f"  {feat}: {val}\n")
-                buf.write("\nPrediction Result\n")
-                buf.write("-" * 30 + "\n")
-                buf.write(f"  Label              : {r['label']}\n")
-                buf.write(f"  P(Malignant)       : {r['probability_malignant']:.4f}\n")
-                buf.write(f"  P(Benign)          : {r['probability_benign']:.4f}\n")
+            if st.session_state.get("diagnosis_report"):
                 st.download_button(
-                    "Download Patient Report (.txt)",
-                    data=buf.getvalue(),
-                    file_name=f"diagnosis_report_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                    "Download patient report (.txt)",
+                    data=st.session_state["diagnosis_report"],
+                    file_name="breastcare_diagnosis_report.txt",
                     mime="text/plain",
+                    key="dl_diagnosis_report",
                 )
 
         with tab_history:
             hist = [h for h in st.session_state["history"] if "Diagnosis" in h["model"]]
             if hist:
-                st.table(pd.DataFrame(hist))
+                hist_df = pd.DataFrame(hist)
+                st.download_button(
+                    "Download history (.csv)",
+                    data=_csv_bytes(hist_df),
+                    file_name="breastcare_diagnosis_history.csv",
+                    mime="text/csv",
+                    key="dl_diagnosis_history",
+                )
+                st.table(hist_df)
             else:
                 st.info("No predictions yet this session.")
 
@@ -602,33 +703,29 @@ elif page == "Risk Stratification":
                     "inputs_summary": f"Age={inputs_b.get('Age at Diagnosis', '')}, Stage={inputs_b.get('Tumor Stage', '')}",
                     "result": label_b,
                 })
+                st.session_state["risk_report"] = _risk_report(ts_str, inputs_b, r)
 
-                # Patient report download
-                buf = io.StringIO()
-                buf.write("BreastCare — Patient Report\n")
-                buf.write("=" * 50 + "\n")
-                buf.write(f"Timestamp : {ts_str}\n")
-                buf.write(f"Model     : Risk Stratification (XGBoost)\n\n")
-                buf.write("Patient Inputs\n")
-                buf.write("-" * 30 + "\n")
-                for feat, val in inputs_b.items():
-                    buf.write(f"  {feat}: {val}\n")
-                buf.write("\nPrediction Result\n")
-                buf.write("-" * 30 + "\n")
-                buf.write(f"  Risk Level : {r['label']}\n")
-                for risk, prob in r["probabilities"].items():
-                    buf.write(f"  P({risk}) : {prob:.4f}\n")
+            if st.session_state.get("risk_report"):
                 st.download_button(
-                    "Download Patient Report (.txt)",
-                    data=buf.getvalue(),
-                    file_name=f"risk_report_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                    "Download patient report (.txt)",
+                    data=st.session_state["risk_report"],
+                    file_name="breastcare_risk_report.txt",
                     mime="text/plain",
+                    key="dl_risk_report",
                 )
 
         with tab_history_b:
             hist_b = [h for h in st.session_state["history"] if "Risk" in h["model"]]
             if hist_b:
-                st.table(pd.DataFrame(hist_b))
+                hist_b_df = pd.DataFrame(hist_b)
+                st.download_button(
+                    "Download history (.csv)",
+                    data=_csv_bytes(hist_b_df),
+                    file_name="breastcare_risk_history.csv",
+                    mime="text/csv",
+                    key="dl_risk_history",
+                )
+                st.table(hist_b_df)
             else:
                 st.info("No predictions yet this session.")
 
@@ -708,30 +805,15 @@ elif page == "Survival Analysis":
                     "inputs_summary": f"Age={inputs_c.get('Age at Diagnosis', '')}, Stage={inputs_c.get('Tumor Stage', '')}",
                     "result": result_summary,
                 })
+                st.session_state["survival_report"] = _survival_report(ts_str, inputs_c, r)
 
-                # Patient report download
-                buf = io.StringIO()
-                buf.write("BreastCare — Patient Report\n")
-                buf.write("=" * 50 + "\n")
-                buf.write(f"Timestamp : {ts_str}\n")
-                buf.write(f"Model     : Survival Analysis (Cox Proportional Hazards)\n\n")
-                buf.write("Patient Inputs\n")
-                buf.write("-" * 30 + "\n")
-                for feat, val in inputs_c.items():
-                    buf.write(f"  {feat}: {val}\n")
-                buf.write("\nPrediction Result — Overall Survival\n")
-                buf.write("-" * 30 + "\n")
-                for months, prob in r["overall_survival"].items():
-                    buf.write(f"  {months}-month OS: {prob:.4f}\n")
-                buf.write("\nPrediction Result — Relapse-Free Survival\n")
-                buf.write("-" * 30 + "\n")
-                for months, prob in r["relapse_free_survival"].items():
-                    buf.write(f"  {months}-month RFS: {prob:.4f}\n")
+            if st.session_state.get("survival_report"):
                 st.download_button(
-                    "Download Patient Report (.txt)",
-                    data=buf.getvalue(),
-                    file_name=f"survival_report_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                    "Download patient report (.txt)",
+                    data=st.session_state["survival_report"],
+                    file_name="breastcare_survival_report.txt",
                     mime="text/plain",
+                    key="dl_survival_report",
                 )
 
             # Survival curve (shows if a result already exists this session)
@@ -748,13 +830,28 @@ elif page == "Survival Analysis":
                         }, index=curve_data["months"])
                         curve_df.index.name = "Months"
                         st.line_chart(curve_df, x_label="Time (Months)", y_label="Survival Probability")
+                        st.download_button(
+                            "Download survival curve (.csv)",
+                            data=_csv_bytes(curve_df.reset_index()),
+                            file_name="breastcare_survival_curve.csv",
+                            mime="text/csv",
+                            key="dl_survival_curve",
+                        )
                     except Exception as ex:
                         st.warning(f"Survival curve unavailable: {ex}")
 
         with tab_history_c:
             hist_c = [h for h in st.session_state["history"] if "Survival" in h["model"]]
             if hist_c:
-                st.table(pd.DataFrame(hist_c))
+                hist_c_df = pd.DataFrame(hist_c)
+                st.download_button(
+                    "Download history (.csv)",
+                    data=_csv_bytes(hist_c_df),
+                    file_name="breastcare_survival_history.csv",
+                    mime="text/csv",
+                    key="dl_survival_history",
+                )
+                st.table(hist_c_df)
             else:
                 st.info("No predictions yet this session.")
 
@@ -765,6 +862,15 @@ elif page == "Survival Analysis":
 elif page == "Model Metrics":
     try:
         all_m = get_all_metrics()
+        metrics_df = _metrics_table(all_m)
+        if not metrics_df.empty:
+            st.download_button(
+                "Download metrics (.csv)",
+                data=_csv_bytes(metrics_df),
+                file_name="breastcare_model_metrics.csv",
+                mime="text/csv",
+                key="dl_metrics",
+            )
 
         # ── Model A ───────────────────────────────────────────────────────────
         st.markdown(
@@ -1016,6 +1122,40 @@ elif page == "Cohort Comparison":
                 fig.update_xaxes(gridcolor="rgba(255,255,255,0.08)", zerolinecolor="rgba(255,255,255,0.15)")
                 fig.update_yaxes(gridcolor="rgba(255,255,255,0.08)", zerolinecolor="rgba(255,255,255,0.15)")
                 st.plotly_chart(fig, use_container_width=True)
+                comparison = pd.DataFrame({
+                    "months": curve1["months"],
+                    "patient_a_overall_survival": curve1["overall_survival"],
+                    "patient_a_relapse_free_survival": curve1["relapse_free_survival"],
+                    "patient_b_overall_survival": curve2["overall_survival"],
+                    "patient_b_relapse_free_survival": curve2["relapse_free_survival"],
+                })
+                r1 = st.session_state.get("cohort_p1_result", {})
+                r2 = st.session_state.get("cohort_p2_result", {})
+                report = "\n".join([
+                    "BreastCare — Cohort Comparison",
+                    "=" * 50,
+                    f"Patient A risk: {r1.get('label', '—')}",
+                    *[f"  Patient A P({risk}): {prob:.4f}" for risk, prob in r1.get("probabilities", {}).items()],
+                    f"Patient B risk: {r2.get('label', '—')}",
+                    *[f"  Patient B P({risk}): {prob:.4f}" for risk, prob in r2.get("probabilities", {}).items()],
+                    "",
+                    "Survival curves are in the companion CSV.",
+                ]) + "\n"
+                dl1, dl2 = st.columns(2)
+                dl1.download_button(
+                    "Download comparison report (.txt)",
+                    data=report,
+                    file_name="breastcare_cohort_report.txt",
+                    mime="text/plain",
+                    key="dl_cohort_report",
+                )
+                dl2.download_button(
+                    "Download survival curves (.csv)",
+                    data=_csv_bytes(comparison),
+                    file_name="breastcare_cohort_curves.csv",
+                    mime="text/csv",
+                    key="dl_cohort_curves",
+                )
                 st.caption(
                     "**OS (Overall Survival):** Probability the patient is still alive at a given time. "
                     "**RFS (Relapse-Free Survival):** Probability the patient is alive and has not had a cancer recurrence. "
