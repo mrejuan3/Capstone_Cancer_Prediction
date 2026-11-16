@@ -2,18 +2,29 @@ import io
 import datetime
 
 import streamlit as st
-import requests
 import pandas as pd
 import plotly.graph_objects as go
 
-
-from utils.data_loader import load_wbcd, load_metabric, api_health
+from backend.routers.predict import (
+    FeaturesRequest,
+    diagnosis_schema,
+    get_metrics,
+    predict_diagnosis,
+    predict_risk,
+    predict_survival,
+    predict_survival_curve,
+    risk_schema,
+    survival_schema,
+)
+from utils.data_loader import load_wbcd, load_metabric, models_ready
 from utils.theme import inject_theme
 
 st.set_page_config(page_title="BC DecisionPoint", page_icon="🩺", layout="wide")
 inject_theme()
 
-API = "http://localhost:8000"
+
+def _run(endpoint, features: dict) -> dict:
+    return endpoint(FeaturesRequest(features=features))
 
 NAV_ITEMS = [
     "Data Overview",
@@ -129,14 +140,14 @@ with st.sidebar:
 page = st.session_state.page
 
 # ── Page header ───────────────────────────────────────────────────────────────
-connected = api_health()
+ready = models_ready()
 status_html = (
-    '<span class="status-ok">● API Connected</span>'
-    if connected else
+    '<span class="status-ok">● Models ready</span>'
+    if ready else
     '<span style="display:inline-flex;align-items:center;gap:7px;'
     'background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);'
     'border-radius:20px;padding:4px 14px;font-size:0.75rem;font-weight:600;'
-    'color:#fca5a5;-webkit-text-fill-color:#fca5a5;">● API Offline</span>'
+    'color:#fca5a5;-webkit-text-fill-color:#fca5a5;">● Models unavailable</span>'
 )
 st.markdown(
     f'<div class="page-eyebrow">Clinical ML Platform</div>'
@@ -156,19 +167,19 @@ st.divider()
 # ── Schema / metrics loaders ──────────────────────────────────────────────────
 @st.cache_data
 def get_diagnosis_schema():
-    return requests.get(f"{API}/predict/diagnosis/schema", timeout=10).json()
+    return diagnosis_schema()
 
 @st.cache_data
 def get_risk_schema():
-    return requests.get(f"{API}/predict/risk/schema", timeout=10).json()
+    return risk_schema()
 
 @st.cache_data
 def get_survival_schema():
-    return requests.get(f"{API}/predict/survival/schema", timeout=10).json()
+    return survival_schema()
 
 @st.cache_data
 def get_all_metrics():
-    return requests.get(f"{API}/predict/metrics", timeout=10).json()
+    return get_metrics()
 
 # ── Overview stat row (shown on every page) ───────────────────────────────────
 _ICON_MICROSCOPE = (
@@ -489,9 +500,7 @@ elif page == "Diagnosis":
             if submitted_a:
                 st.session_state["last_diagnosis_inputs"] = dict(inputs_a)
                 with st.spinner("Analysing..."):
-                    resp = requests.post(f"{API}/predict/diagnosis", json={"features": inputs_a}, timeout=15)
-                    resp.raise_for_status()
-                    r = resp.json()
+                    r = _run(predict_diagnosis, inputs_a)
                 st.session_state["last_diagnosis_result"] = r
 
                 label_a = r["label"]
@@ -591,9 +600,7 @@ elif page == "Risk Stratification":
 
             if submitted_b:
                 with st.spinner("Analysing..."):
-                    resp = requests.post(f"{API}/predict/risk", json={"features": inputs_b}, timeout=15)
-                    resp.raise_for_status()
-                    r = resp.json()
+                    r = _run(predict_risk, inputs_b)
                 label_b = r["label"]
                 css = f"result-{label_b.lower()}"
                 st.markdown(
@@ -694,9 +701,7 @@ elif page == "Survival Analysis":
             if submitted_c:
                 st.session_state["last_survival_inputs"] = dict(inputs_c)
                 with st.spinner("Analysing..."):
-                    resp = requests.post(f"{API}/predict/survival", json={"features": inputs_c}, timeout=15)
-                    resp.raise_for_status()
-                    r = resp.json()
+                    r = _run(predict_survival, inputs_c)
                 st.session_state["last_survival_result"] = r
 
                 col_os, col_rfs = st.columns(2, gap="large")
@@ -757,13 +762,10 @@ elif page == "Survival Analysis":
             if "last_survival_inputs" in st.session_state:
                 with st.expander("Survival Curve"):
                     try:
-                        curve_resp = requests.post(
-                            f"{API}/predict/survival/curve",
-                            json={"features": st.session_state["last_survival_inputs"]},
-                            timeout=20,
+                        curve_data = _run(
+                            predict_survival_curve,
+                            st.session_state["last_survival_inputs"],
                         )
-                        curve_resp.raise_for_status()
-                        curve_data = curve_resp.json()
                         curve_df = pd.DataFrame({
                             "Overall Survival": curve_data["overall_survival"],
                             "Relapse-Free Survival": curve_data["relapse_free_survival"],
@@ -970,16 +972,12 @@ elif page == "Cohort Comparison":
         if run_p1:
             st.session_state["cohort_p1_inputs"] = dict(inputs_p1)
             with st.spinner("Running Patient A..."):
-                r1 = requests.post(f"{API}/predict/risk", json={"features": inputs_p1}, timeout=15)
-                r1.raise_for_status()
-                st.session_state["cohort_p1_result"] = r1.json()
+                st.session_state["cohort_p1_result"] = _run(predict_risk, inputs_p1)
 
         if run_p2:
             st.session_state["cohort_p2_inputs"] = dict(inputs_p2)
             with st.spinner("Running Patient B..."):
-                r2 = requests.post(f"{API}/predict/risk", json={"features": inputs_p2}, timeout=15)
-                r2.raise_for_status()
-                st.session_state["cohort_p2_result"] = r2.json()
+                st.session_state["cohort_p2_result"] = _run(predict_risk, inputs_p2)
 
         if "cohort_p1_result" in st.session_state or "cohort_p2_result" in st.session_state:
             st.markdown("---")
@@ -1025,21 +1023,14 @@ elif page == "Cohort Comparison":
                         merged[k] = v
                     return merged
 
-                curve1_resp = requests.post(
-                    f"{API}/predict/survival/curve",
-                    json={"features": _merge_survival_inputs(st.session_state["cohort_p1_inputs"])},
-                    timeout=20,
+                curve1 = _run(
+                    predict_survival_curve,
+                    _merge_survival_inputs(st.session_state["cohort_p1_inputs"]),
                 )
-                curve1_resp.raise_for_status()
-                curve1 = curve1_resp.json()
-
-                curve2_resp = requests.post(
-                    f"{API}/predict/survival/curve",
-                    json={"features": _merge_survival_inputs(st.session_state["cohort_p2_inputs"])},
-                    timeout=20,
+                curve2 = _run(
+                    predict_survival_curve,
+                    _merge_survival_inputs(st.session_state["cohort_p2_inputs"]),
                 )
-                curve2_resp.raise_for_status()
-                curve2 = curve2_resp.json()
 
                 months = curve1["months"]
                 fig = go.Figure()
