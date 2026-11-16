@@ -7,16 +7,20 @@ html, body, [class*="css"] {
     font-family: 'Inter', -apple-system, sans-serif !important;
 }
 .stApp {
-    background-color: #0d1b3e !important;
+    background-color: #0b1736 !important;
+    background-image:
+        radial-gradient(1100px 480px at 0% -10%, rgba(244,63,122,0.16), transparent 55%),
+        radial-gradient(900px 420px at 100% 0%, rgba(99,102,241,0.14), transparent 50%) !important;
 }
 .main .block-container {
-    padding: 2rem 2.5rem 4rem 2.5rem !important;
-    max-width: 1280px;
+    padding: 1.6rem 2.4rem 4.5rem 2.4rem !important;
+    max-width: 1180px;
 }
 #MainMenu, footer { visibility: hidden; }
 [data-testid="stToolbarActions"],
 [data-testid="stMainMenu"],
-[data-testid="stAppDeployButton"] { display: none !important; }
+[data-testid="stAppDeployButton"],
+[data-testid="stDeployButton"] { display: none !important; }
 [data-testid="stExpandSidebarButton"],
 [data-testid="stSidebarCollapsedControl"],
 [data-testid="collapsedControl"] {
@@ -27,47 +31,61 @@ html, body, [class*="css"] {
 
 /* ── Sidebar ──────────────────────────────────────────────────────────────── */
 [data-testid="stSidebar"] {
-    background: #0a1530 !important;
-    border-right: 1px solid rgba(255,255,255,0.05) !important;
+    background: #081226 !important;
+    border-right: 1px solid rgba(255,255,255,0.06) !important;
 }
 [data-testid="stSidebar"] > div:first-child { padding: 0 !important; }
 [data-testid="stSidebar"] * { color: rgba(255,255,255,0.6) !important; }
 
 .sb-brand {
-    padding: 28px 22px 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 22px 18px 18px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
-    margin-bottom: 10px;
+    margin-bottom: 6px;
+}
+.sb-mark {
+    width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(145deg, #fb7185, #e11d48);
+    color: #ffffff !important; -webkit-text-fill-color: #ffffff !important;
+    font-weight: 800; font-size: 1.05rem; letter-spacing: -0.03em;
+    box-shadow: 0 8px 18px rgba(244,63,122,0.35);
 }
 .sb-brand-name {
-    font-size: 1.3rem; font-weight: 800; letter-spacing: -0.02em;
+    font-size: 1.15rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1;
     color: #ffffff !important; -webkit-text-fill-color: #ffffff !important;
 }
 .sb-brand-sub {
-    font-size: 0.71rem; font-weight: 400; letter-spacing: 0.03em;
-    color: rgba(255,255,255,0.3) !important; margin-top: 3px;
+    font-size: 0.72rem; font-weight: 500; letter-spacing: 0.01em;
+    color: rgba(255,255,255,0.42) !important; margin-top: 2px;
 }
 
 .sb-section {
-    font-size: 0.65rem; font-weight: 600; letter-spacing: 0.12em;
-    text-transform: uppercase; color: rgba(255,255,255,0.25) !important;
-    padding: 16px 22px 8px;
+    font-size: 0.66rem; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: rgba(255,255,255,0.32) !important;
+    -webkit-text-fill-color: rgba(255,255,255,0.32) !important;
+    padding: 16px 18px 6px;
 }
 
 [data-testid="stSidebar"] .stButton button {
     background: transparent !important;
-    color: rgba(255,255,255,0.45) !important;
-    -webkit-text-fill-color: rgba(255,255,255,0.45) !important;
+    color: rgba(255,255,255,0.72) !important;
+    -webkit-text-fill-color: rgba(255,255,255,0.72) !important;
     border: none !important;
-    border-radius: 8px !important;
-    font-size: 0.84rem !important;
-    font-weight: 400 !important;
+    border-radius: 10px !important;
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
     text-align: left !important;
-    padding: 9px 14px !important;
+    justify-content: flex-start !important;
+    padding: 0.62rem 0.9rem !important;
     margin: 1px 10px !important;
     width: calc(100% - 20px) !important;
+    min-height: 40px !important;
     box-shadow: none !important;
     transition: background 0.15s, color 0.15s !important;
-    letter-spacing: 0.01em !important;
+    letter-spacing: 0 !important;
 }
 [data-testid="stSidebar"] .stButton button:hover {
     background: rgba(255,255,255,0.05) !important;
@@ -77,45 +95,67 @@ html, body, [class*="css"] {
     transform: none !important;
 }
 
-.nav-item-active {
+[data-testid="stSidebar"] .nav-item-active {
     display: flex;
     align-items: center;
-    gap: 9px;
-    background: rgba(244,63,122,0.13) !important;
-    color: #f9a8c9 !important;
-    -webkit-text-fill-color: #f9a8c9 !important;
-    font-size: 0.84rem !important;
+    background: rgba(244,63,122,0.16) !important;
+    color: #fbcfe8 !important;
+    -webkit-text-fill-color: #fbcfe8 !important;
+    font-size: 0.9rem !important;
     font-weight: 600 !important;
-    padding: 9px 14px 9px 11px !important;
+    padding: 0.62rem 0.9rem !important;
     margin: 1px 10px !important;
-    border-left: 3px solid #f43f7a !important;
-    border-radius: 0 8px 8px 0 !important;
-    letter-spacing: 0.01em !important;
+    min-height: 40px;
+    border-radius: 10px !important;
+    box-shadow: inset 3px 0 0 #f43f7a !important;
     box-sizing: border-box !important;
+    letter-spacing: 0 !important;
 }
 .nav-item-active svg { flex-shrink: 0; opacity: 0.9; }
 .nav-item-active span { color: #f9a8c9 !important; -webkit-text-fill-color: #f9a8c9 !important; }
 
 .sb-footer {
-    position: absolute; bottom: 24px; left: 0; right: 0;
-    text-align: center; font-size: 0.67rem;
-    color: rgba(255,255,255,0.15) !important; letter-spacing: 0.04em;
+    margin: 28px 16px 8px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    font-size: 0.7rem; line-height: 1.45;
+    color: rgba(255,255,255,0.32) !important;
+    -webkit-text-fill-color: rgba(255,255,255,0.32) !important;
 }
 
 /* ── Page chrome ──────────────────────────────────────────────────────────── */
+.app-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin: 0 0 28px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.app-header-copy { max-width: 680px; }
 .page-eyebrow {
-    font-size: 0.68rem; font-weight: 600; letter-spacing: 0.1em;
-    text-transform: uppercase; color: #f43f7a !important;
-    -webkit-text-fill-color: #f43f7a !important; margin-bottom: 5px;
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em;
+    text-transform: uppercase; color: #fb7185 !important;
+    -webkit-text-fill-color: #fb7185 !important; margin: 0 0 8px;
 }
 .page-title {
-    font-size: 1.75rem; font-weight: 800; letter-spacing: -0.03em;
+    font-size: 2rem; font-weight: 700; letter-spacing: -0.035em;
     color: #ffffff !important; -webkit-text-fill-color: #ffffff !important;
-    margin: 0 0 5px; line-height: 1.15;
+    margin: 0 0 8px; line-height: 1.1;
 }
 .page-sub {
-    font-size: 0.875rem; color: rgba(255,255,255,0.45) !important;
-    font-weight: 400; line-height: 1.6; margin: 0;
+    font-size: 0.98rem; color: rgba(255,255,255,0.62) !important;
+    -webkit-text-fill-color: rgba(255,255,255,0.62) !important;
+    font-weight: 400; line-height: 1.55; margin: 0;
+    max-width: 62ch;
+}
+.glance-label {
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: rgba(255,255,255,0.4) !important;
+    -webkit-text-fill-color: rgba(255,255,255,0.4) !important;
+    margin: 0 0 12px;
 }
 
 /* ── Status pill ──────────────────────────────────────────────────────────── */
@@ -161,9 +201,9 @@ hr {
 
 /* ── Section heading ──────────────────────────────────────────────────────── */
 .section-heading {
-    font-size: 1.05rem; font-weight: 700; color: #ffffff !important;
+    font-size: 1.15rem; font-weight: 700; color: #ffffff !important;
     -webkit-text-fill-color: #ffffff !important;
-    letter-spacing: -0.02em; margin: 0 0 16px;
+    letter-spacing: -0.02em; margin: 28px 0 6px;
 }
 
 /* ── Content card ─────────────────────────────────────────────────────────── */
@@ -211,8 +251,7 @@ hr {
     animation: fadeUp 0.4s ease;
 }
 [data-testid="stMetric"]:hover {
-    transform: translateY(-2px) !important;
-    border-color: rgba(244,63,122,0.3) !important;
+    border-color: rgba(244,63,122,0.35) !important;
 }
 [data-testid="stMetricLabel"] p {
     font-size: 0.67rem !important; font-weight: 600 !important;
@@ -323,32 +362,63 @@ p, li, div, small, .stMarkdown, .stText {
 [data-testid="stFormSubmitButton"] {
     display: flex !important;
     justify-content: flex-start !important;
-    margin-top: 10px !important;
+    margin-top: 18px !important;
 }
-[data-testid="stFormSubmitButton"] > button {
-    background: rgba(244,63,122,0.08) !important;
-    color: #f9a8c9 !important;
-    -webkit-text-fill-color: #f9a8c9 !important;
-    border: 1.5px solid rgba(244,63,122,0.45) !important;
-    border-radius: 100px !important;
-    font-weight: 600 !important;
-    font-size: 0.78rem !important;
-    padding: 0.65rem 2.6rem !important;
-    letter-spacing: 0.1em !important;
-    text-transform: uppercase !important;
-    width: auto !important;
-    min-width: 180px !important;
-    backdrop-filter: blur(8px) !important;
-    box-shadow: 0 0 18px rgba(244,63,122,0.12), inset 0 0 12px rgba(244,63,122,0.06) !important;
-    transition: all 0.2s ease !important;
-}
-[data-testid="stFormSubmitButton"] > button:hover {
-    background: rgba(244,63,122,0.2) !important;
+[data-testid="stFormSubmitButton"] > button,
+[data-testid="stDownloadButton"] button {
+    background: #f43f7a !important;
     color: #ffffff !important;
     -webkit-text-fill-color: #ffffff !important;
-    border-color: rgba(244,63,122,0.85) !important;
-    box-shadow: 0 0 32px rgba(244,63,122,0.4), inset 0 0 16px rgba(244,63,122,0.1) !important;
-    transform: translateY(-2px) !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    padding: 0.7rem 1.4rem !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+    width: auto !important;
+    min-height: 44px !important;
+    box-shadow: 0 8px 20px rgba(244,63,122,0.28) !important;
+    transition: background 0.15s ease, transform 0.15s ease !important;
+}
+[data-testid="stDownloadButton"] button {
+    background: transparent !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    box-shadow: none !important;
+}
+[data-testid="stFormSubmitButton"] > button:hover {
+    background: #e11d48 !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    transform: translateY(-1px) !important;
+}
+[data-testid="stDownloadButton"] button:hover {
+    background: rgba(255,255,255,0.06) !important;
+    border-color: rgba(255,255,255,0.32) !important;
+}
+
+/* ── Tabs ─────────────────────────────────────────────────────────────────── */
+[data-testid="stTabs"] [data-baseweb="tab-list"] {
+    gap: 4px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 12px;
+    padding: 4px;
+}
+[data-testid="stTabs"] button[data-baseweb="tab"] {
+    border-radius: 8px !important;
+    padding: 8px 14px !important;
+    color: rgba(255,255,255,0.62) !important;
+}
+[data-testid="stTabs"] button[data-baseweb="tab"][aria-selected="true"] {
+    background: rgba(244,63,122,0.18) !important;
+    color: #ffffff !important;
+}
+[data-testid="stTabs"] [data-baseweb="tab-highlight"],
+[data-testid="stTabs"] [data-baseweb="tab-border"] {
+    display: none !important;
 }
 
 /* ── Dataframe ────────────────────────────────────────────────────────────── */

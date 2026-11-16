@@ -20,7 +20,7 @@ from utils.data_loader import load_wbcd, load_metabric, models_ready
 from utils.theme import inject_theme
 
 st.set_page_config(
-    page_title="BC DecisionPoint",
+    page_title="BreastCare",
     page_icon="🩺",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -31,15 +31,20 @@ inject_theme()
 def _run(endpoint, features: dict) -> dict:
     return endpoint(FeaturesRequest(features=features))
 
-NAV_ITEMS = [
-    "Data Overview",
-    "Diagnosis",
-    "Risk Stratification",
-    "Survival Analysis",
-    "Model Metrics",
-
-    "Cohort Comparison",
+NAV_GROUPS = [
+    ("Explore", ["Data Overview"]),
+    ("Predict", ["Diagnosis", "Risk Stratification", "Survival Analysis", "Cohort Comparison"]),
+    ("Review", ["Model Metrics"]),
 ]
+PAGE_COPY = {
+    "Data Overview": "Wisconsin Diagnostic and METABRIC, the cohorts behind every prediction.",
+    "Diagnosis": "Benign or malignant, from 30 cell-nucleus measurements.",
+    "Risk Stratification": "Low, medium, or high risk from clinical and molecular features.",
+    "Survival Analysis": "Overall survival and relapse-free survival at 12, 24, and 36 months.",
+    "Model Metrics": "Held-out results for diagnosis, risk, and survival.",
+    "Cohort Comparison": "Two patients side by side: risk tier and survival curves.",
+}
+PAGE_GROUP = {label: group for group, labels in NAV_GROUPS for label in labels}
 
 if "page" not in st.session_state:
     st.session_state.page = "Data Overview"
@@ -113,33 +118,26 @@ def _cm_html(matrix, labels):
 with st.sidebar:
     st.markdown(
         '<div class="sb-brand">'
+        '<div class="sb-mark" aria-hidden="true">B</div>'
+        '<div>'
         '<div class="sb-brand-name">BreastCare</div>'
-        '<div class="sb-brand-sub">Decision Support System</div>'
+        '<div class="sb-brand-sub">Decision support</div>'
+        '</div>'
         '</div>',
         unsafe_allow_html=True,
     )
-    st.markdown('<div class="sb-section">Navigation</div>', unsafe_allow_html=True)
-    _NAV_ICONS = {
-        "Data Overview":       '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
-        "Diagnosis":           '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',
-        "Risk Stratification": '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
-        "Survival Analysis":   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>',
-        "Model Metrics":       '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="20" x2="21" y2="20"/><rect x="4" y="14" width="4" height="6" rx="0.5"/><rect x="10" y="8" width="4" height="12" rx="0.5"/><rect x="16" y="4" width="4" height="16" rx="0.5"/></svg>',
-
-        "Cohort Comparison":   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="7"/><circle cx="15" cy="12" r="7"/></svg>',
-    }
-    for label in NAV_ITEMS:
-        active = st.session_state.page == label
-        icon = _NAV_ICONS.get(label, "")
-        if active:
-            st.markdown(
-                f'<div class="nav-item-active">{icon}<span>{label}</span></div>',
-                unsafe_allow_html=True,
-            )
-        else:
-            if st.button(label, key=f"nav_{label}", use_container_width=True):
+    for group, labels in NAV_GROUPS:
+        st.markdown(f'<div class="sb-section">{group}</div>', unsafe_allow_html=True)
+        for label in labels:
+            if st.session_state.page == label:
+                st.markdown(f'<div class="nav-item-active">{label}</div>', unsafe_allow_html=True)
+            elif st.button(label, key="nav_" + label.lower().replace(" ", "_"), use_container_width=True):
                 st.session_state.page = label
                 st.rerun()
+    st.markdown(
+        '<div class="sb-footer">Research and education only. Not a clinical device.</div>',
+        unsafe_allow_html=True,
+    )
 
 
 page = st.session_state.page
@@ -155,19 +153,16 @@ status_html = (
     'color:#fca5a5;-webkit-text-fill-color:#fca5a5;">● Models unavailable</span>'
 )
 st.markdown(
-    f'<div class="page-eyebrow">Clinical ML Platform</div>'
-    f'<div style="display:flex;align-items:flex-start;justify-content:space-between;'
-    f'flex-wrap:wrap;gap:12px;margin-bottom:8px;">'
-    f'  <div>'
-    f'    <p class="page-title">BC-DecisionPoint</p>'
-    f'    <p class="page-sub">Interpretable prediction platform supporting clinical '
-    f'decision-making in breast cancer care.</p>'
+    f'<header class="app-header">'
+    f'  <div class="app-header-copy">'
+    f'    <p class="page-eyebrow">{PAGE_GROUP[page]}</p>'
+    f'    <h1 class="page-title">{page}</h1>'
+    f'    <p class="page-sub">{PAGE_COPY[page]}</p>'
     f'  </div>'
-    f'  <div style="padding-top:6px;">{status_html}</div>'
-    f'</div>',
+    f'  <div class="app-header-status">{status_html}</div>'
+    f'</header>',
     unsafe_allow_html=True,
 )
-st.divider()
 
 # ── Schema / metrics loaders ──────────────────────────────────────────────────
 @st.cache_data
@@ -233,44 +228,38 @@ _ICON_CHART = (
     '</svg>'
 )
 
-c1, c2, c3, c4 = st.columns(4, gap="medium")
-c1.markdown(
-    f'<div class="stat-card">'
-    f'<div class="stat-card-icon" style="background:rgba(244,63,122,0.15);">{_ICON_MICROSCOPE}</div>'
-    '<div><div class="stat-card-value">569</div>'
-    '<div class="stat-card-label">WBCD Patients</div></div></div>',
-    unsafe_allow_html=True,
-)
-c2.markdown(
-    f'<div class="stat-card">'
-    f'<div class="stat-card-icon" style="background:rgba(99,102,241,0.15);">{_ICON_DNA}</div>'
-    '<div><div class="stat-card-value">2,509</div>'
-    '<div class="stat-card-label">METABRIC Patients</div></div></div>',
-    unsafe_allow_html=True,
-)
-c3.markdown(
-    f'<div class="stat-card">'
-    f'<div class="stat-card-icon" style="background:rgba(20,184,166,0.15);">{_ICON_NETWORK}</div>'
-    '<div><div class="stat-card-value">3</div>'
-    '<div class="stat-card-label">ML Models</div></div></div>',
-    unsafe_allow_html=True,
-)
-c4.markdown(
-    f'<div class="stat-card">'
-    f'<div class="stat-card-icon" style="background:rgba(251,191,36,0.15);">{_ICON_CHART}</div>'
-    '<div><div class="stat-card-value">30+</div>'
-    '<div class="stat-card-label">Clinical Features</div></div></div>',
-    unsafe_allow_html=True,
-)
-st.markdown("<div style='margin-bottom:24px;'></div>", unsafe_allow_html=True)
-
-# ── Data Overview ─────────────────────────────────────────────────────────────
 if page == "Data Overview":
-    st.markdown(
-        '<div class="page-banner"><h3>Dataset Overview</h3>'
-        '<p>Explore the two clinical datasets powering the prediction models.</p></div>',
+    st.markdown('<p class="glance-label">At a glance</p>', unsafe_allow_html=True)
+    c1, c2, c3, c4 = st.columns(4, gap="medium")
+    c1.markdown(
+        f'<div class="stat-card">'
+        f'<div class="stat-card-icon" style="background:rgba(244,63,122,0.15);">{_ICON_MICROSCOPE}</div>'
+        '<div><div class="stat-card-value">569</div>'
+        '<div class="stat-card-label">WBCD patients</div></div></div>',
         unsafe_allow_html=True,
     )
+    c2.markdown(
+        f'<div class="stat-card">'
+        f'<div class="stat-card-icon" style="background:rgba(99,102,241,0.15);">{_ICON_DNA}</div>'
+        '<div><div class="stat-card-value">2,509</div>'
+        '<div class="stat-card-label">METABRIC patients</div></div></div>',
+        unsafe_allow_html=True,
+    )
+    c3.markdown(
+        f'<div class="stat-card">'
+        f'<div class="stat-card-icon" style="background:rgba(20,184,166,0.15);">{_ICON_NETWORK}</div>'
+        '<div><div class="stat-card-value">3</div>'
+        '<div class="stat-card-label">Models</div></div></div>',
+        unsafe_allow_html=True,
+    )
+    c4.markdown(
+        f'<div class="stat-card">'
+        f'<div class="stat-card-icon" style="background:rgba(251,191,36,0.15);">{_ICON_CHART}</div>'
+        '<div><div class="stat-card-value">30+</div>'
+        '<div class="stat-card-label">Clinical features</div></div></div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown("<div style='margin-bottom:8px;'></div>", unsafe_allow_html=True)
 
     # ── WBCD ──────────────────────────────────────────────────────────────────
     st.markdown('<p class="section-heading">Wisconsin Breast Cancer Diagnostic</p>', unsafe_allow_html=True)
@@ -460,12 +449,6 @@ if page == "Data Overview":
 
 # ── Diagnosis ─────────────────────────────────────────────────────────────────
 elif page == "Diagnosis":
-    st.markdown(
-        '<div class="page-banner"><h3>Tumor Diagnosis</h3>'
-        '<p>Predicts whether a breast mass is <strong>Benign</strong> or <strong>Malignant</strong> '
-        'from 30 cell nucleus measurements. Powered by a Calibrated Random Forest.</p></div>',
-        unsafe_allow_html=True,
-    )
     try:
         schema_a    = get_diagnosis_schema()
         features_a  = schema_a["features"]
@@ -530,7 +513,7 @@ elif page == "Diagnosis":
 
                 # Patient report download
                 buf = io.StringIO()
-                buf.write("BC-DecisionPoint — Patient Report\n")
+                buf.write("BreastCare — Patient Report\n")
                 buf.write("=" * 50 + "\n")
                 buf.write(f"Timestamp : {ts_str}\n")
                 buf.write(f"Model     : Diagnosis (Calibrated Random Forest)\n\n")
@@ -562,12 +545,6 @@ elif page == "Diagnosis":
 
 # ── Risk Stratification ───────────────────────────────────────────────────────
 elif page == "Risk Stratification":
-    st.markdown(
-        '<div class="page-banner"><h3>Risk Stratification</h3>'
-        '<p>Classifies patient into <strong>Low</strong>, <strong>Medium</strong>, or '
-        '<strong>High</strong> risk using clinical and molecular features. Powered by XGBoost.</p></div>',
-        unsafe_allow_html=True,
-    )
     try:
         schema_b    = get_risk_schema()
         num_stats_b = schema_b["num_stats"]
@@ -628,7 +605,7 @@ elif page == "Risk Stratification":
 
                 # Patient report download
                 buf = io.StringIO()
-                buf.write("BC-DecisionPoint — Patient Report\n")
+                buf.write("BreastCare — Patient Report\n")
                 buf.write("=" * 50 + "\n")
                 buf.write(f"Timestamp : {ts_str}\n")
                 buf.write(f"Model     : Risk Stratification (XGBoost)\n\n")
@@ -660,12 +637,6 @@ elif page == "Risk Stratification":
 
 # ── Survival Analysis ─────────────────────────────────────────────────────────
 elif page == "Survival Analysis":
-    st.markdown(
-        '<div class="page-banner"><h3>Survival Analysis</h3>'
-        '<p>Estimates <strong>Overall Survival</strong> and <strong>Relapse-Free Survival</strong> '
-        'probabilities at 12, 24, and 36 months via Cox Proportional Hazards.</p></div>',
-        unsafe_allow_html=True,
-    )
     try:
         schema_c   = get_survival_schema()
         cat_opts_c = schema_c["cat_options"]
@@ -740,7 +711,7 @@ elif page == "Survival Analysis":
 
                 # Patient report download
                 buf = io.StringIO()
-                buf.write("BC-DecisionPoint — Patient Report\n")
+                buf.write("BreastCare — Patient Report\n")
                 buf.write("=" * 50 + "\n")
                 buf.write(f"Timestamp : {ts_str}\n")
                 buf.write(f"Model     : Survival Analysis (Cox Proportional Hazards)\n\n")
@@ -792,12 +763,6 @@ elif page == "Survival Analysis":
 
 # ── Model Metrics ─────────────────────────────────────────────────────────────
 elif page == "Model Metrics":
-    st.markdown(
-        '<div class="page-banner"><h3>Model Performance</h3>'
-        '<p>Held-out test set evaluation for all three models. ',
-        unsafe_allow_html=True,
-    )
-
     try:
         all_m = get_all_metrics()
 
@@ -931,11 +896,6 @@ elif page == "Model Metrics":
 
 # ── Cohort Comparison ─────────────────────────────────────────────────────────
 elif page == "Cohort Comparison":
-    st.markdown(
-        '<div class="page-banner"><h3>Cohort Comparison</h3>'
-        '<p>Compare two patient profiles side-by-side: risk stratification and survival curves.</p></div>',
-        unsafe_allow_html=True,
-    )
     try:
         schema_b    = get_risk_schema()
         num_stats_b = schema_b["num_stats"]
