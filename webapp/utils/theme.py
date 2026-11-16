@@ -140,13 +140,6 @@ html, body, [class*="css"] {
     font-weight: 400; line-height: 1.55; margin: 0;
     max-width: 62ch;
 }
-.glance-label {
-    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.12em;
-    text-transform: uppercase; color: rgba(255,255,255,0.4) !important;
-    -webkit-text-fill-color: rgba(255,255,255,0.4) !important;
-    margin: 0 0 12px;
-}
-
 /* ── Status pill ──────────────────────────────────────────────────────────── */
 .status-ok {
     display: inline-flex; align-items: center; gap: 7px;

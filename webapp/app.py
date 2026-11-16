@@ -310,7 +310,6 @@ _ICON_CHART = (
 )
 
 if page == "Data Overview":
-    st.markdown('<p class="glance-label">At a glance</p>', unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns(4, gap="medium")
     c1.markdown(
         f'<div class="stat-card">'
