@@ -38,20 +38,9 @@ html, body, [class*="css"] {
 [data-testid="stSidebar"] * { color: rgba(255,255,255,0.6) !important; }
 
 .sb-brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
     padding: 22px 18px 18px;
     border-bottom: 1px solid rgba(255,255,255,0.06);
     margin-bottom: 6px;
-}
-.sb-mark {
-    width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(145deg, #fb7185, #e11d48);
-    color: #ffffff !important; -webkit-text-fill-color: #ffffff !important;
-    font-weight: 800; font-size: 1.05rem; letter-spacing: -0.03em;
-    box-shadow: 0 8px 18px rgba(244,63,122,0.35);
 }
 .sb-brand-name {
     font-size: 1.15rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1;

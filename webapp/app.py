@@ -202,11 +202,8 @@ def _cm_html(matrix, labels):
 with st.sidebar:
     st.markdown(
         '<div class="sb-brand">'
-        '<div class="sb-mark" aria-hidden="true">B</div>'
-        '<div>'
         '<div class="sb-brand-name">BreastCare</div>'
         '<div class="sb-brand-sub">Decision support</div>'
-        '</div>'
         '</div>',
         unsafe_allow_html=True,
     )
